@@ -1,0 +1,116 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Gradle cache
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Build
+        run: >
+          ./gradlew build --no-daemon --stacktrace
+          -x test
+          -x compileTestmodJava
+          -x javadoc
+          -x remapSourcesJar
+          -x sourcesJar
+          -x validateAnnotations
+          -x runDatagen
+          -x checkReferenceCompatibility
+          -x validateMixinNames
+          -x validateAccessWidener
+
+      - name: Collect release jars
+        run: |
+          mkdir -p dist
+          shopt -s nullglob
+          for f in build/libs/*.jar; do
+            case "$f" in
+              *-sources.jar) continue ;;
+              *-testmod.jar) continue ;;
+              *fatjavadoc.jar) continue ;;
+            esac
+            cp "$f" dist/
+          done
+          echo "Release assets:"
+          ls -la dist
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Forgified Fabric API ${{ github.ref_name }}
+          body: |
+            A **Forge 1.18.2 port of the Fabric API**, packaged so that Fabric mods can run on
+            Forge through [Sinytra Connector](https://github.com/TYW-MC/Connector-1.18.2).
+
+            Drop this jar into your `mods/` folder together with Connector and the Fabric mods
+            you want to run.
+
+            ## Compatibility
+
+            | | |
+            | --- | --- |
+            | Minecraft | 1.18.2 |
+            | Forge | 40.3.12 or newer |
+            | Java | 17 |
+            | Requires | Sinytra Connector 1.18.2 |
+
+            ## What's inside
+
+            The full Fabric API module set, built for 1.18.2: resource loader, registry sync,
+            networking, transfer API, item groups, loot API, mining level, content registries,
+            and the supporting implementation modules.
+
+            ## Fixes in this build
+
+            - **The main menu panorama and sounds no longer disappear.**
+              Sinytra Connector exposes the vanilla game and Forge as ordinary Fabric mods, and
+              their game jars only ship 1x1 stub copies of a handful of assets - among them the
+              title screen panoramas. Those stubs used to be bundled into the always-on-top
+              `Fabric Mods` pack, which shadowed the real assets served by the asset-index-backed
+              default pack. The result was a flat grey main menu background and no music.
+              Resource packs are now skipped for game/platform mods: either the `minecraft` mod id,
+              or any mod whose root paths contain the `assets/.mcassetsroot` (or
+              `data/.mcassetsroot`) marker.
+
+            ## Installation
+
+            1. Install Minecraft Forge 40.3.x for Minecraft 1.18.2.
+            2. Put this jar and `Connector-1.18.2` into your `mods/` folder.
+            3. Put any Fabric mods you want to use into the same folder.
+
+            ## Building from source
+
+            ```bash
+            ./gradlew build
+            ```
+
+            Requires JDK 17. Builds run automatically on every push and on every release tag.
+          files: dist/*.jar
+          fail_on_unmatched_files: true
+          draft: false
+          prerelease: false
