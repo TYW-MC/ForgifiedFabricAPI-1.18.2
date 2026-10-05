@@ -1,0 +1,85 @@
+import java.nio.file.Files
+
+for (def sourceSet in [
+	sourceSets.main
+]) {
+	// We have to capture the source set name for the lazy string literals,
+	// otherwise it'll just be whatever the last source set is in the list.
+	def sourceSetName = sourceSet.name
+	def taskName = sourceSet.getTaskName('generate', 'ImplPackageInfos')
+	def task = tasks.register(taskName, GenerateImplPackageInfos) {
+		group = 'fabric'
+		description = "Generates package-info files for $sourceSetName implementation packages."
+
+		// Only apply to default source directory since we also add the generated
+		// sources to the source set.
+		sourceRoots.from(sourceSet.java.srcDirs)
+		header = rootProject.file('HEADER')
+		outputDir = file("src/generated/$sourceSetName/java")
+	}
+	sourceSet.java.srcDir task
+
+	def cleanTask = tasks.register(sourceSet.getTaskName('clean', 'ImplPackageInfos'), Delete) {
+		group = 'fabric'
+		delete file("src/generated/$sourceSetName/java")
+	}
+	clean.dependsOn cleanTask
+}
+
+class GenerateImplPackageInfos extends DefaultTask {
+	@InputFile
+	File header
+
+	@SkipWhenEmpty
+	@InputFiles
+	final ConfigurableFileCollection sourceRoots = project.objects.fileCollection()
+
+	@OutputDirectory
+	final DirectoryProperty outputDir = project.objects.directoryProperty()
+
+	@TaskAction
+	def run() {
+		def output = outputDir.get().asFile.toPath()
+		output.deleteDir()
+		def headerText = header.readLines().join("\n") // normalize line endings
+
+		for (def srcDir in sourceRoots) {
+			if (srcDir.isDirectory()) {
+				def root = srcDir.toPath()
+
+				for (def dir in ['impl', 'mixin']) {
+					def implDir = root.resolve("net/fabricmc/fabric/$dir")
+
+					if (Files.notExists(implDir)) {
+						continue
+					}
+
+					implDir.eachDirRecurse {
+						def containsJava = Files.list(it).any {
+							Files.isRegularFile(it) && it.fileName.toString().endsWith('.java')
+						}
+
+						if (containsJava && Files.notExists(it.resolve('package-info.java'))) {
+							def relativePath = root.relativize(it)
+							def target = output.resolve(relativePath)
+							Files.createDirectories(target)
+
+							target.resolve('package-info.java').withWriter {
+								def packageName = relativePath.toString().replace(File.separator, '.')
+								it.write("""$headerText
+										|/**
+										| * Implementation code for ${project.name}.
+										| */
+										|@ApiStatus.Internal
+										|package $packageName;
+										|
+										|import org.jetbrains.annotations.ApiStatus;
+										|""".stripMargin())
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}

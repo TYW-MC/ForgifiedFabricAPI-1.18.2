@@ -1,0 +1,14 @@
+archivesBaseName = "fabric-api-base"
+version = getSubprojectVersion(project)
+
+//
+
+testDependencies(project, [
+	'deprecated/fabric-command-api-v1',
+	':fabric-lifecycle-events-v1',
+	':fabric-screen-api-v1',
+])
+
+dependencies {
+	compileOnly "net.fabricmc:fabric-loader:${rootProject.loader_version}"
+}

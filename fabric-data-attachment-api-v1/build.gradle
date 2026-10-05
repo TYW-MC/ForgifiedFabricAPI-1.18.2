@@ -1,0 +1,20 @@
+version = getSubprojectVersion(project)
+
+moduleDependencies(project, [
+	'fabric-api-base',
+	':fabric-entity-events-v1',
+	':fabric-object-builder-api-v1',
+])
+
+test {
+	enabled = false
+}
+
+testDependencies(project, [
+	':fabric-lifecycle-events-v1',
+	':fabric-biome-api-v1',
+])
+
+dependencies {
+	compileOnly "net.fabricmc:fabric-loader:${rootProject.loader_version}"
+}

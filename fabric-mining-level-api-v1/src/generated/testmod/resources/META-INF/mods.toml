@@ -1,0 +1,37 @@
+modLoader = "javafml"
+loaderVersion = "[40,)"
+license = "Apache-2.0"
+
+[[mods]]
+  modId = "fabric_mining_level_api_v1_testmod"
+  version = "${file.jarVersion}"
+  displayName = "Fabric Mining Level API (v1) Test Mod"
+provides = ["fabric-mining-level-api-v1-testmod"]
+
+    [[dependencies.fabric_mining_level_api_v1_testmod]]
+      modId = "forge"
+      mandatory = true
+      versionRange = "[40.3.12,)"
+      ordering = "NONE"
+      side = "BOTH"
+
+    [[dependencies.fabric_mining_level_api_v1_testmod]]
+      modId = "minecraft"
+      mandatory = true
+      versionRange = "[1.18.2,1.19)"
+      ordering = "NONE"
+      side = "BOTH"
+
+    [[dependencies.fabric_mining_level_api_v1_testmod]]
+      modId = "fabric_mining_level_api_v1"
+      mandatory = true
+      versionRange = "[0, )"
+      ordering = "NONE"
+      side = "BOTH"
+
+    [[dependencies.fabric_mining_level_api_v1_testmod]]
+      modId = "fabric_lifecycle_events_v1"
+      mandatory = true
+      versionRange = "[0, )"
+      ordering = "NONE"
+      side = "BOTH"

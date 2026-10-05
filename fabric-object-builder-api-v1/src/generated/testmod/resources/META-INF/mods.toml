@@ -1,0 +1,40 @@
+modLoader = "javafml"
+loaderVersion = "[40,)"
+license = "Apache-2.0"
+
+[[mods]]
+  modId = "fabric_object_builder_api_v1_testmod"
+  version = "${file.jarVersion}"
+  displayName = "Fabric Object Builder API (v1) Test Mod"
+  logoFile = "assets/fabric-object-builder-api-v1-testmod/icon.png"
+  authors = "FabricMC"
+  description = "Test mod for fabric object builder API v1."
+provides = ["fabric-object-builder-api-v1-testmod"]
+
+    [[dependencies.fabric_object_builder_api_v1_testmod]]
+      modId = "forge"
+      mandatory = true
+      versionRange = "[40.3.12,)"
+      ordering = "NONE"
+      side = "BOTH"
+
+    [[dependencies.fabric_object_builder_api_v1_testmod]]
+      modId = "minecraft"
+      mandatory = true
+      versionRange = "[1.18.2,1.19)"
+      ordering = "NONE"
+      side = "BOTH"
+
+    [[dependencies.fabric_object_builder_api_v1_testmod]]
+      modId = "fabric_resource_loader_v0"
+      mandatory = true
+      versionRange = "[0, )"
+      ordering = "NONE"
+      side = "BOTH"
+
+    [[dependencies.fabric_object_builder_api_v1_testmod]]
+      modId = "fabric_object_builder_api_v1"
+      mandatory = true
+      versionRange = "[0, )"
+      ordering = "NONE"
+      side = "BOTH"

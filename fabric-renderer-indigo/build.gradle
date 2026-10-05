@@ -1,0 +1,15 @@
+archivesBaseName = "fabric-renderer-indigo"
+version = getSubprojectVersion(project)
+
+loom {
+	// access widener removed: not present in Fabric API 0.77.0+1.18.2 (src/client/resources/fabric-renderer-indigo.accesswidener)
+}
+
+moduleDependencies(project, [
+	'fabric-api-base',
+	'fabric-renderer-api-v1',
+])
+
+dependencies {
+	compileOnly "net.fabricmc:fabric-loader:${rootProject.loader_version}"
+}

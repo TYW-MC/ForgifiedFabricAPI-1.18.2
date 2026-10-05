@@ -1,0 +1,47 @@
+modLoader = "javafml"
+loaderVersion = "[40,)"
+license = "Apache-2.0"
+
+[[mods]]
+  modId = "fabric_events_lifecycle_v0"
+  version = "${file.jarVersion}"
+  displayName = "Fabric Events Lifecycle (v0)"
+  logoFile = "assets/fabric-events-lifecycle-v0/icon.png"
+  authors = "FabricMC"
+  description = "Legacy events for the game's lifecycle, superseded by fabric-lifecycle-events-v1 and fabric-item-api-v1."
+provides = ["fabric-events-lifecycle-v0"]
+
+    [[dependencies.fabric_events_lifecycle_v0]]
+      modId = "forge"
+      mandatory = true
+      versionRange = "[40.3.12,)"
+      ordering = "NONE"
+      side = "BOTH"
+
+    [[dependencies.fabric_events_lifecycle_v0]]
+      modId = "minecraft"
+      mandatory = true
+      versionRange = "[1.18.2,1.19)"
+      ordering = "NONE"
+      side = "BOTH"
+
+    [[dependencies.fabric_events_lifecycle_v0]]
+      modId = "fabric_api_base"
+      mandatory = true
+      versionRange = "[0, )"
+      ordering = "NONE"
+      side = "BOTH"
+
+    [[dependencies.fabric_events_lifecycle_v0]]
+      modId = "fabric_item_api_v1"
+      mandatory = true
+      versionRange = "[0, )"
+      ordering = "NONE"
+      side = "BOTH"
+
+    [[dependencies.fabric_events_lifecycle_v0]]
+      modId = "fabric_lifecycle_events_v1"
+      mandatory = true
+      versionRange = "[0, )"
+      ordering = "NONE"
+      side = "BOTH"

@@ -1,0 +1,30 @@
+modLoader = "javafml"
+loaderVersion = "[40,)"
+license = "Apache-2.0"
+
+[[mods]]
+  modId = "fabric_registry_sync_v0_v1_testmod"
+  version = "${file.jarVersion}"
+  displayName = "Fabric Registry Sync (v0) Test Mod"
+provides = ["fabric-registry-sync-v0-v1-testmod"]
+
+    [[dependencies.fabric_registry_sync_v0_v1_testmod]]
+      modId = "forge"
+      mandatory = true
+      versionRange = "[40.3.12,)"
+      ordering = "NONE"
+      side = "BOTH"
+
+    [[dependencies.fabric_registry_sync_v0_v1_testmod]]
+      modId = "minecraft"
+      mandatory = true
+      versionRange = "[1.18.2,1.19)"
+      ordering = "NONE"
+      side = "BOTH"
+
+    [[dependencies.fabric_registry_sync_v0_v1_testmod]]
+      modId = "fabric_registry_sync_v0"
+      mandatory = true
+      versionRange = "[0, )"
+      ordering = "NONE"
+      side = "BOTH"

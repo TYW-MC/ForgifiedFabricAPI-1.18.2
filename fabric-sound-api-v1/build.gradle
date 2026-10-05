@@ -1,0 +1,12 @@
+archivesBaseName = "fabric-sound-api-v1"
+version = getSubprojectVersion(project)
+
+testDependencies(project, [
+	':fabric-api-base',
+	':fabric-resource-loader-v0',
+	'deprecated/fabric-command-api-v1',
+])
+
+dependencies {
+	compileOnly "net.fabricmc:fabric-loader:${rootProject.loader_version}"
+}

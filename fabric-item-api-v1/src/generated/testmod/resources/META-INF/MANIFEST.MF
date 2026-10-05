@@ -1,0 +1,1 @@
+MixinConfigs: fabric-item-api-tests-v1.mixins.json

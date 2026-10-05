@@ -1,0 +1,26 @@
+modLoader = "javafml"
+loaderVersion = "[40,)"
+license = "Apache-2.0"
+
+[[mods]]
+  modId = "fabric_api_base"
+  version = "${file.jarVersion}"
+  displayName = "Fabric API Base"
+  logoFile = "assets/fabric-api-base/icon.png"
+  authors = "FabricMC"
+  description = "Contains the essentials for Fabric API modules."
+provides = ["fabric-api-base"]
+
+    [[dependencies.fabric_api_base]]
+      modId = "forge"
+      mandatory = true
+      versionRange = "[40.3.12,)"
+      ordering = "NONE"
+      side = "BOTH"
+
+    [[dependencies.fabric_api_base]]
+      modId = "minecraft"
+      mandatory = true
+      versionRange = "[1.18.2,1.19)"
+      ordering = "NONE"
+      side = "BOTH"

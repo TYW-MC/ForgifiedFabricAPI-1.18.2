@@ -1,0 +1,24 @@
+archivesBaseName = "fabric-content-registries-v0"
+version = getSubprojectVersion(project)
+
+loom {
+	accessWidenerPath = file("src/main/resources/fabric-content-registries-v0.accesswidener")
+}
+
+moduleDependencies(project, [
+	'fabric-api-base',
+	'fabric-lifecycle-events-v1',
+	'fabric-resource-loader-v0',
+])
+
+afterEvaluate {
+	compareJar {
+	    from(zipTree(project(":fabric-api-base").tasks.jar.archiveFile)) {
+	        include("net/fabricmc/fabric/api/util/**")
+	    }
+	}
+}
+
+dependencies {
+	compileOnly "net.fabricmc:fabric-loader:${rootProject.loader_version}"
+}

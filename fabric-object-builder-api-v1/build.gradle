@@ -1,0 +1,23 @@
+archivesBaseName = "fabric-object-builder-api-v1"
+version = getSubprojectVersion(project)
+
+moduleDependencies(project, [
+	'fabric-api-base',
+	'fabric-resource-loader-v0',
+])
+
+loom {
+	accessWidenerPath = file("src/main/resources/fabric-object-builder-api-v1.accesswidener")
+}
+
+validateMixinNames {
+	exclude "**/ModelPredicateProviderRegistrySpecificAccessor.class"
+}
+
+testDependencies(project, [
+	'deprecated/fabric-command-api-v1',
+])
+
+dependencies {
+	compileOnly "net.fabricmc:fabric-loader:${rootProject.loader_version}"
+}

@@ -1,0 +1,26 @@
+modLoader = "javafml"
+loaderVersion = "[40,)"
+license = "Apache-2.0"
+
+[[mods]]
+  modId = "fabric_particles_v1"
+  version = "${file.jarVersion}"
+  displayName = "Fabric Particles (v1)"
+  logoFile = "assets/fabric-particles-v1/icon.png"
+  authors = "FabricMC"
+  description = "Hooks for registering custom particles."
+provides = ["fabric-particles-v1"]
+
+    [[dependencies.fabric_particles_v1]]
+      modId = "forge"
+      mandatory = true
+      versionRange = "[40.3.12,)"
+      ordering = "NONE"
+      side = "BOTH"
+
+    [[dependencies.fabric_particles_v1]]
+      modId = "minecraft"
+      mandatory = true
+      versionRange = "[1.18.2,1.19)"
+      ordering = "NONE"
+      side = "BOTH"

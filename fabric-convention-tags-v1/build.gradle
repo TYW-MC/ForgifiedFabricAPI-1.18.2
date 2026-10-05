@@ -1,0 +1,58 @@
+archivesBaseName = "fabric-convention-tags-v1"
+version = getSubprojectVersion(project)
+
+moduleDependencies(project, [
+	'fabric-api-base',
+	'fabric-data-generation-api-v1',
+])
+
+sourceSets {
+	main {
+		resources {
+			srcDir 'src/generated/resources'
+		}
+	}
+	datagen {
+		compileClasspath += main.compileClasspath
+		runtimeClasspath += main.runtimeClasspath
+		compileClasspath += main.output
+		runtimeClasspath += main.output
+	}
+}
+
+dependencies {
+	datagenImplementation project(path: ":fabric-data-generation-api-v1", configuration: 'namedElements')
+	datagenImplementation project(path: ":fabric-lifecycle-events-v1", configuration: 'namedElements')
+}
+
+loom {
+	runs {
+		datagen {
+			data()
+			name "Data Generation"
+
+			programArgs "--mod", "fabric_convention_tags_v1_datagen", "--all", "--output", file("src/generated/resources").absolutePath
+
+			ideConfigGenerated = true
+			runDir "build/datagen"
+			source sourceSets.testmod
+		}
+	}
+
+	mods.register(project.name + "-datagen") {
+		sourceSet sourceSets.datagen
+	}
+}
+
+afterEvaluate {
+	runDatagen.dependsOn "datagenClasses"
+	generateResources.dependsOn "runDatagen"
+}
+
+testDependencies(project, [
+	':fabric-lifecycle-events-v1',
+])
+
+dependencies {
+	compileOnly "net.fabricmc:fabric-loader:${rootProject.loader_version}"
+}

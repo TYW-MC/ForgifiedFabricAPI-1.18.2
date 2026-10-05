@@ -1,0 +1,18 @@
+archivesBaseName = "fabric-commands-v0"
+version = getSubprojectVersion(project)
+
+moduleDependencies(project, [
+	'fabric-api-base',
+	'deprecated/fabric-command-api-v1',
+])
+
+loom {
+	// workaround for lack of cross-project taw propagation in loom
+	// 1.18.2 note: the AW must live in src/main/resources and be declared in fabric.mod.json,
+	// otherwise forge-loom's AW->AT conversion in remapJar fails with NoSuchFileException.
+	accessWidenerPath = file("src/main/resources/fabric-commands-v0.accesswidener")
+}
+
+dependencies {
+	compileOnly "net.fabricmc:fabric-loader:${rootProject.loader_version}"
+}

@@ -1,0 +1,26 @@
+modLoader = "javafml"
+loaderVersion = "[40,)"
+license = "Apache-2.0"
+
+[[mods]]
+  modId = "fabric_convention_tags_v1"
+  version = "${file.jarVersion}"
+  displayName = "Fabric Convention Tags"
+  logoFile = "assets/fabric-convention-tags-v1/icon.png"
+  authors = "FabricMC"
+  description = "Contains common tags used by mods for vanilla things."
+provides = ["fabric-convention-tags-v1"]
+
+    [[dependencies.fabric_convention_tags_v1]]
+      modId = "forge"
+      mandatory = true
+      versionRange = "[40.3.12,)"
+      ordering = "NONE"
+      side = "BOTH"
+
+    [[dependencies.fabric_convention_tags_v1]]
+      modId = "minecraft"
+      mandatory = true
+      versionRange = "[1.18.2,1.19)"
+      ordering = "NONE"
+      side = "BOTH"

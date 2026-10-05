@@ -1,0 +1,27 @@
+{
+  "required": true,
+  "package": "net.fabricmc.fabric.mixin.client.rendering",
+  "compatibilityLevel": "JAVA_16",
+  "client": [
+    "CapeFeatureRendererMixin",
+    "MixinArmorFeatureRenderer",
+    "MixinBlockColorMap",
+    "MixinBuiltinModelItemRenderer",
+    "MixinInGameHud",
+    "MixinItemColorMap",
+    "MixinWorldRenderer",
+    "EntityModelLayersAccessor",
+    "EntityModelsMixin",
+    "LivingEntityRendererAccessor",
+    "MixinBlockEntityRenderers",
+    "MixinEntityRenderers",
+    "ScreenMixin",
+    "DimensionEffectsAccessor",
+    "shader.GameRendererMixin",
+    "shader.ShaderImportProcessorMixin",
+    "shader.ShaderMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

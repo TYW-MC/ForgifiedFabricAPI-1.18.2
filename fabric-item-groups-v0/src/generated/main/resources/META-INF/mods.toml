@@ -1,0 +1,40 @@
+modLoader = "javafml"
+loaderVersion = "[40,)"
+license = "Apache-2.0"
+
+[[mods]]
+  modId = "fabric_item_groups_v0"
+  version = "${file.jarVersion}"
+  displayName = "Fabric Item Groups (v0)"
+  logoFile = "assets/fabric-item-groups-v0/icon.png"
+  authors = "FabricMC"
+  description = "An API for adding custom item groups."
+provides = ["fabric-item-groups-v0"]
+
+    [[dependencies.fabric_item_groups_v0]]
+      modId = "forge"
+      mandatory = true
+      versionRange = "[40.3.12,)"
+      ordering = "NONE"
+      side = "BOTH"
+
+    [[dependencies.fabric_item_groups_v0]]
+      modId = "minecraft"
+      mandatory = true
+      versionRange = "[1.18.2,1.19)"
+      ordering = "NONE"
+      side = "BOTH"
+
+    [[dependencies.fabric_item_groups_v0]]
+      modId = "fabric_api_base"
+      mandatory = true
+      versionRange = "[0, )"
+      ordering = "NONE"
+      side = "BOTH"
+
+    [[dependencies.fabric_item_groups_v0]]
+      modId = "fabric_resource_loader_v0"
+      mandatory = true
+      versionRange = "[0, )"
+      ordering = "NONE"
+      side = "BOTH"

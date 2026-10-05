@@ -1,0 +1,10 @@
+archivesBaseName = "fabric-keybindings-v0"
+version = getSubprojectVersion(project)
+
+moduleDependencies(project, [
+	'fabric-key-binding-api-v1',
+])
+
+dependencies {
+	compileOnly "net.fabricmc:fabric-loader:${rootProject.loader_version}"
+}

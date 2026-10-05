@@ -1,0 +1,13 @@
+archivesBaseName = "fabric-recipe-api-v1"
+version = getSubprojectVersion(project)
+
+loom {
+	accessWidenerPath = file('src/main/resources/fabric-recipe-api-v1.accesswidener')
+}
+
+moduleDependencies(project, [
+])
+
+dependencies {
+	compileOnly "net.fabricmc:fabric-loader:${rootProject.loader_version}"
+}

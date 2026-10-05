@@ -1,0 +1,15 @@
+archivesBaseName = "fabric-rendering-data-attachment-v1"
+version = getSubprojectVersion(project)
+
+moduleDependencies(project, [
+])
+
+dependencies {
+	compileOnly "net.fabricmc:fabric-loader:${rootProject.loader_version}"
+}
+
+loom {
+	// 1.18.2: ChunkRendererRegionBuilder$ClientChunk is private; the official
+	// 0.77.0+1.18.2 access widener for this module opens it for the mixin below.
+	accessWidenerPath = file("src/main/resources/fabric-rendering-data-attachment-v1.accesswidener")
+}

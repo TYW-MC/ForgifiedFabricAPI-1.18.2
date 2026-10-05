@@ -1,0 +1,40 @@
+modLoader = "javafml"
+loaderVersion = "[40,)"
+license = "Apache-2.0"
+
+[[mods]]
+  modId = "fabric_networking_v0"
+  version = "${file.jarVersion}"
+  displayName = "Fabric Networking (v0)"
+  logoFile = "assets/fabric-networking-v0/icon.png"
+  authors = "FabricMC"
+  description = "Legacy Networking packet hooks and registries, superseded by fabric-networking-api-v1."
+provides = ["fabric-networking-v0"]
+
+    [[dependencies.fabric_networking_v0]]
+      modId = "forge"
+      mandatory = true
+      versionRange = "[40.3.12,)"
+      ordering = "NONE"
+      side = "BOTH"
+
+    [[dependencies.fabric_networking_v0]]
+      modId = "minecraft"
+      mandatory = true
+      versionRange = "[1.18.2,1.19)"
+      ordering = "NONE"
+      side = "BOTH"
+
+    [[dependencies.fabric_networking_v0]]
+      modId = "fabric_api_base"
+      mandatory = true
+      versionRange = "[0, )"
+      ordering = "NONE"
+      side = "BOTH"
+
+    [[dependencies.fabric_networking_v0]]
+      modId = "fabric_networking_api_v1"
+      mandatory = true
+      versionRange = "[0, )"
+      ordering = "NONE"
+      side = "BOTH"

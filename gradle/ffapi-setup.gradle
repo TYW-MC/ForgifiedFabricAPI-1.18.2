@@ -1,0 +1,561 @@
+buildscript {
+    dependencies {
+        classpath files(rootProject.buildscript.configurations.classpath)
+    }
+}
+
+
+import com.moandjiezana.toml.TomlWriter
+import groovy.json.JsonBuilder
+import groovy.json.JsonSlurper
+import net.fabricmc.loom.api.mappings.layered.MappingsNamespace
+import net.fabricmc.loom.build.nesting.IncludedJarFactory
+import net.fabricmc.loom.task.RemapJarTask
+import net.fabricmc.loom.task.service.MappingsService
+import net.fabricmc.loom.util.FileSystemUtil
+import net.fabricmc.loom.util.LfWriter
+import net.fabricmc.loom.util.aw2at.Aw2At
+import net.fabricmc.loom.util.service.BuildSharedServiceManager
+import net.fabricmc.loom.util.service.UnsafeWorkQueueHelper
+import net.fabricmc.lorenztiny.TinyMappingsReader
+import net.fabricmc.loom.util.GroovyXmlUtil
+import org.cadixdev.at.AccessTransformSet
+import org.cadixdev.at.io.AccessTransformFormats
+import org.cadixdev.lorenz.MappingSet
+import org.gradle.build.event.BuildEventsListenerRegistry
+
+import javax.inject.Inject
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
+
+allprojects {
+	if (name == 'deprecated') return
+	final selfProject = it
+
+	sourceSets.configureEach { sourceSet ->
+		// We have to capture the source set name for the lazy string literals,
+		// otherwise it'll just be whatever the last source set is in the list.
+		def sourceSetName = sourceSet.name
+		def resourceRoots = sourceSet.resources.srcDirs
+		def taskName = sourceSet.getTaskName('generate', 'ForgeModMetadata')
+		def task = tasks.register(taskName, GenerateForgeModMetadata) {
+			group = 'fabric'
+			description = "Generates mods.toml files for $sourceSetName fabric mod."
+	
+			// Only apply to default source directory since we also add the generated
+			// sources to the source set.
+			sourceRoots.from(resourceRoots)
+			outputDir = file("src/generated/$sourceSetName/resources")
+			def loaderVer = rootProject.forge_version.tokenize('-')[1]
+			loaderVersionString = loaderVer.tokenize('.')[0]
+			forgeVersionString = loaderVer
+			minecraftVersionString = rootProject.minecraft_version
+			packFormat = rootProject.pack_format.toInteger()
+			addMixinConfigs = sourceSet.name.startsWith("test")
+			accessWidener = loom.accessWidenerPath
+			containsCode = selfProject === rootProject
+		}
+		sourceSet.resources.srcDir task
+	
+		if (!sourceSet.name.startsWith("test")) {
+			for (def sourceRoot in resourceRoots) {
+				if (!sourceRoot.isDirectory()) {
+					continue
+				}
+				def fabricMetadata = sourceRoot.toPath().resolve("fabric.mod.json").toFile()
+				if (fabricMetadata.exists()) {
+					def parser = new JsonSlurper()
+					def json = parser.parse(fabricMetadata)
+					if (json.mixins) {
+						for (def mixin in json.mixins) {
+							if (mixin instanceof Map) {
+								loom.forge.mixinConfig mixin.config
+							} else if (mixin instanceof String) {
+								loom.forge.mixinConfig mixin
+							} else {
+								throw new RuntimeException("Unknown mixin config type ${mixin.getClass()}")
+							}
+						}
+					}
+				}
+			}
+		}
+	
+		def cleanTask = tasks.register(sourceSet.getTaskName('clean', 'ForgeModMetadata'), Delete) {
+			group = 'fabric'
+			delete file("src/generated/$sourceSetName/resources")
+		}
+		clean.dependsOn cleanTask
+	}
+	
+	def localDevJar = tasks.register("localDevJar", Jar) {
+		dependsOn jar
+		from(zipTree(jar.archiveFile))
+		rename "accesstransformer_dev.cfg", "accesstransformer.cfg"
+		archiveClassifier = "local"
+		destinationDirectory = project.layout.buildDirectory.dir("devlibs")
+		manifest.from(jar.manifest)
+	}
+	remapJar {
+		doLast {
+			try (FileSystemUtil.Delegate fileSystem = FileSystemUtil.getJarFileSystem(archiveFile.get().asFile.toPath(), false)) {
+				def fs = fileSystem.get()
+				def atPath = fs.getPath("META-INF/accesstransformer_dev.cfg")
+				Files.deleteIfExists(atPath)
+			}
+		}
+	}
+	afterEvaluate {
+		configurations.namedElements {
+			outgoing.artifacts.clear()
+			outgoing.artifact(localDevJar)
+		}
+	}
+	tasks.withType(net.fabricmc.loom.task.AbstractRemapJarTask).configureEach {
+		remapperIsolation = false
+	}
+
+	configurations {
+		remappedJars {
+			canBeConsumed = true
+			canBeResolved = false
+		}
+		testModRemappedJars {
+			canBeConsumed = true
+			canBeResolved = false
+		}
+	}
+	artifacts {
+		remappedJars(SIGNING_ENABLED ? tasks.named("signRemapJar") : remapJar)
+	}
+	// Because it dies on try-with-resources statements
+	spotlessGroovyGradle {
+		enabled = false
+	}
+
+	loom.mixin {
+		defaultRefmapName = project.base.archivesName.map { it + "-refmap.json" }
+		// 1.18.2 note: Architectury Loom 1.3 hard-requires the legacy mixin AP on the forge
+		// platform ("Forge must have useLegacyMixinAp enabled"), so it must stay enabled here.
+		// The legacy AP rejects injectors whose @Mixin target is an interface, therefore the two
+		// interface-injection mixins of the 0.92-era sources (fabric-item RecipeMixin and
+		// registry-sync MixinDynamicRegistryManager) were removed instead — their companion
+		// hooks simply never fire on 1.18.2.
+	}
+	
+	repositories {
+		maven { url = "https://maven.su5ed.dev/releases" }
+	}
+}
+
+configurations {
+	includedRemappedJars
+	includedTestModRemappedJars
+}
+subprojects.each { proj ->
+	if (!(proj.name in DEV_ONLY_MODULES) && proj.name != "deprecated") {
+		// Include the signed or none signed jar from the sub project.
+		dependencies {
+			includedRemappedJars project(path: proj.path, configuration: 'remappedJars')
+		}
+	}
+
+	if (proj.name != "deprecated" && (proj.file("src/testmod").exists() || proj.file("src/testmodClient").exists())) {
+		dependencies {
+			includedTestModRemappedJars project(path: proj.path, configuration: 'testModRemappedJars')
+		}
+	}
+}
+def includedJarFactory = new IncludedJarFactory(project)
+remapJar {
+	forgeNestedJars.addAll includedJarFactory.getForgeNestedJars(configurations.includedRemappedJars)
+		.map { it.left().collect { it.resolve() } }
+}
+remapTestmodJar {
+	mustRunAfter remapJar
+	forgeNestedJars.addAll includedJarFactory.getForgeNestedJars(configurations.includedTestModRemappedJars)
+		.map { it.left().collect { it.resolve() } }
+	addNestedDependencies = true
+}
+
+subprojects {
+	loom {
+		runs {
+			gametest {
+				server()
+				ideConfigGenerated project.rootProject == project
+				name = "Testmod Game Test Server"
+				source sourceSets.testmod
+
+				// Enable the gametest runner
+				property "forge.gameTestServer", "true"
+			}
+		}
+	}
+}
+
+configurations {
+	referenceApi
+	jarCompatChecker
+	javadocDeps
+}
+dependencies {
+	// 1.18.2 note: CONFIGURED_VERSION (0.92.6) is the 1.20.1-era FFAPI version; upstream never
+	// published fabric-api 0.92.x for 1.18.2. The reference for the jar-compat check must be the
+	// last upstream release for this MC version: 0.77.0+1.18.2.
+	referenceApi "net.fabricmc.fabric-api:fabric-api:0.77.0+${rootProject.minecraft_version}"
+	referenceApi "net.fabricmc.fabric-api:fabric-api-deprecated:0.77.0+${rootProject.minecraft_version}"
+	jarCompatChecker "dev.su5ed.sinytra:JarCompatibilityChecker:0.1.+:all"
+	javadocDeps "net.fabricmc:fabric-loader:${rootProject.loader_version}"
+	
+	// 1.18.2 note: upstream nests the Forgified Fabric Loader fork here via its "full" classifier jar
+	// (include "dev.su5ed.sinytra:fabric-loader:${rootProject.forge_fabric_loader_version}:full").
+	// Our 1.18.2 loader fork (F:\SinytraLoader-1.18.2) does not produce a "full" artifact, and
+	// Connector-1.18.2 already embeds the same loader fork (shade + jarjar metadata), so nesting it
+	// here again is redundant — dropped instead of building a fat loader jar.
+	include implementation("io.github.llamalad7:mixinextras-forge:0.4.1")
+}
+afterEvaluate {
+	javadoc {
+		classpath += files(configurations.javadocDeps)
+	}
+}
+afterEvaluate {
+	publishing {
+		publications {
+			mavenJava(MavenPublication) {
+				pom.withXml {
+					def depsNode = GroovyXmlUtil.getOrCreateNode(asNode(), "dependencies")
+					rootProject.configurations.include.dependencies.each {
+						def depNode = depsNode.appendNode("dependency")
+						depNode.appendNode("groupId", it.group)
+						depNode.appendNode("artifactId", it.name)
+						depNode.appendNode("version", it.version)
+						depNode.appendNode("scope", "compile")
+					}
+				}
+			}
+		}
+	}
+}
+
+// Mitigate https://github.com/MinecraftForge/InstallerTools/issues/14 in fg.deobf
+def relocateNestedJars = tasks.register("relocateNestedJars") {
+	def archiveFile = remapJar.archiveFile
+	inputs.file(archiveFile)
+	outputs.upToDateWhen { true }
+
+	doLast {
+		try (FileSystemUtil.Delegate fs = FileSystemUtil.getJarFileSystem(archiveFile.get().asFile.toPath(), false)) {
+			def sourceDirectory = fs.getPath("META-INF", "jars")
+			def destinationDirectory = fs.getPath("META-INF", "jarjar")
+			Files.newDirectoryStream(sourceDirectory).forEach { path ->
+				Files.move(path, destinationDirectory.resolve(path.getFileName()), StandardCopyOption.COPY_ATTRIBUTES)
+			}
+			Files.delete(sourceDirectory)
+
+			def metadata = fs.getPath("META-INF", "jarjar", "metadata.json")
+			def text = Files.readString(metadata, StandardCharsets.UTF_8)
+			def replaced = text.replaceAll('META-INF/jars/', 'META-INF/jarjar/')
+			Files.writeString(metadata, replaced, StandardCharsets.UTF_8)
+		}
+	}
+}
+remapJar {
+	finalizedBy relocateNestedJars
+}
+
+subprojects {
+	if (name == 'deprecated') return
+
+	configurations {
+		apiLibs {
+			extendsFrom api
+			canBeResolved = true
+		}
+		baseLib
+	}
+	dependencies {
+		compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:0.4.1"))
+		implementation("io.github.llamalad7:mixinextras-forge:0.4.1")
+		testmodImplementation("io.github.llamalad7:mixinextras-forge:0.4.1")
+		baseLib "net.fabricmc:fabric-loader:${rootProject.loader_version}"
+	}
+	def compareJar = tasks.register("compareJar", Jar) {
+		from zipTree(jar.archiveFile)
+		archiveClassifier = "compare"
+		destinationDirectory = project.layout.buildDirectory.dir("devlibs")
+	}
+	def remapReferenceApi = tasks.register("remapReferenceApi", RemapJarTask) {
+		group = "fabric"
+		outputs.cacheIf { true }
+		inputFile.fileProvider provider {
+			def deps = rootProject.configurations.referenceApi.resolvedConfiguration
+			def referenceDep = deps.lenientConfiguration.allModuleDependencies.find { it.moduleGroup == "net.fabricmc.fabric-api" && it.moduleName == project.name }
+			return referenceDep.allModuleArtifacts.first().file
+		}
+		sourceNamespace = MappingsNamespace.INTERMEDIARY.toString()
+		targetNamespace = MappingsNamespace.NAMED.toString()
+		destinationDirectory = project.layout.buildDirectory.dir(name)
+		classpath.from(loom.getMinecraftJarsCollection(MappingsNamespace.INTERMEDIARY))
+	}
+	tasks.register("checkReferenceCompatibility", JavaExec) {
+		group = "verification"
+
+		classpath(rootProject.configurations.jarCompatChecker)
+		mainClass = "net.minecraftforge.jarcompatibilitychecker.ConsoleTool"
+		args "--api", "--annotation-check-mode", "warn_added", "--internal-ann-mode", "skip"
+		def outputLog = project.layout.buildDirectory.dir(name).map { it.file("output.log") }
+		inputs.file(remapReferenceApi.flatMap { it.inputFile })
+			.withPropertyName("inputFile")
+			.withPathSensitivity(PathSensitivity.RELATIVE)
+		outputs.file(outputLog)
+			.withPropertyName("outputFile")
+		outputs.cacheIf { true }
+		doFirst {
+			standardOutput = new FileOutputStream(outputLog.get().asFile)
+		}
+	}
+	afterEvaluate {
+		tasks.configureEach {
+			if (name == "prepareRemapReferenceApi") {
+				doFirst {
+					loom.mixin.useLegacyMixinAp = false
+				}
+				doLast {
+					loom.mixin.useLegacyMixinAp = true
+				}
+			}
+		}
+		checkReferenceCompatibility.configure {
+			dependsOn compareJar, remapReferenceApi
+			args "--base-jar", remapReferenceApi.get().archiveFile.get().asFile.absolutePath, "--input-jar", compareJar.get().archiveFile.get().asFile.absolutePath
+			(configurations.minecraftNamedCompile + configurations.apiLibs).each { args "--lib", it.absolutePath }
+			configurations.baseLib.resolve().each { args "--base-lib", it.absolutePath }
+		}
+	}
+	check {
+		dependsOn checkReferenceCompatibility
+	}
+}
+
+abstract class GenerateForgeModMetadata extends DefaultTask {
+	@SkipWhenEmpty
+	@InputFiles
+	final ConfigurableFileCollection sourceRoots = project.objects.fileCollection()
+
+	@OutputDirectory
+	final DirectoryProperty outputDir = project.objects.directoryProperty()
+
+	@Input
+	final Property<String> loaderVersionString = project.objects.property(String)
+	
+	@Input
+	final Property<String> forgeVersionString = project.objects.property(String)
+
+	@Input
+	final Property<Boolean> containsCode = project.objects.property(Boolean)
+
+	@Input
+	final Property<String> minecraftVersionString = project.objects.property(String)
+
+	@Input
+	final Property<Integer> packFormat = project.objects.property(Integer)
+
+	@Input
+	final Property<Boolean> addMixinConfigs = project.objects.property(Boolean)
+
+	@InputFile
+	@Optional
+	final RegularFileProperty accessWidener = project.objects.fileProperty()
+
+	@Inject
+	protected abstract BuildEventsListenerRegistry getBuildEventsListenerRegistry()
+
+	private final Property<String> mappingServiceUuid = project.objects.property(String)
+
+	@Inject
+	public GenerateForgeModMetadata() {
+		Provider<BuildSharedServiceManager> serviceManagerProvider = BuildSharedServiceManager.createForTask(this, getBuildEventsListenerRegistry())
+
+		mappingServiceUuid.value(project.provider { UnsafeWorkQueueHelper.create(MappingsService.createDefault(project, serviceManagerProvider.get().get(), MappingsNamespace.NAMED.toString(), MappingsNamespace.NAMED.toString())) })
+	}
+
+	def normalizeModid(String modid) {
+		return modid.replaceAll('-', '_')
+	}
+
+	class PseudoMap {
+		final map = [:]
+		void propertyMissing(String name, value) {
+			map[name] = value
+		}
+		void put(String name, value) {
+			map[name] = value
+		}
+	}
+
+	Map buildMap(@DelegatesTo(value = PseudoMap, strategy = 1) Closure cls) {
+		final map = new PseudoMap()
+		cls.delegate = map
+		cls.resolveStrategy = 1
+		cls(map)
+		return map.map
+	}
+
+	@TaskAction
+	def run() {
+		def output = outputDir.get().asFile.toPath()
+		output.deleteDir()
+		def containsCode = sourceRoots.any { new File(it.parentFile, "java").exists() } || this.containsCode.get()
+		for (def sourceRoot in sourceRoots) {
+			if (!sourceRoot.isDirectory()) {
+				continue
+			}
+
+			def root = sourceRoot.toPath()
+			def fabricMetadata = root.resolve("fabric.mod.json")
+
+			if (Files.notExists(fabricMetadata)) {
+				continue
+			}
+
+			def parser = new JsonSlurper()
+			def json = parser.parse(fabricMetadata)
+			def nextMajor = (minecraftVersionString.get().tokenize('.')[1].toInteger()) + 1
+			def excludedDeps = ["fabricloader", "java", "minecraft"]
+			def modDependencies = json.depends.findAll { !excludedDeps.contains(it.key) }.collect {
+				def normalModid = normalizeModid(it.key as String)
+				return [
+					'modId': normalModid,
+					'mandatory': true,
+					'versionRange': '[0, )',
+					'ordering': "NONE",
+					'side': "BOTH",
+				]
+			}
+			def normalModid = normalizeModid(json.id)
+
+			final tomlMap = buildMap {
+				modLoader = containsCode ? "javafml" : "lowcodefml"
+				loaderVersion = "[${loaderVersionString.get()},)" as String
+				license = json.license ?: "All Rights Reserved"
+				if (json.environment == "client") {
+					displayTest = "IGNORE_ALL_VERSION"
+				}
+				if (json.environment == "server") {
+					displayTest = "IGNORE_SERVER_VERSION"
+				}
+
+				def providedMods = []
+				mods = ([
+					buildMap {
+						modId = normalModid
+						version = '${file.jarVersion}'
+						displayName = json.name
+						if (json.icon) {
+							logoFile = json.icon
+						}
+						if (json.authors) {
+							authors = json.authors.join(', ')
+						}
+						if (json.description) {
+							description = json.description
+						}
+						if (json.provides) {
+							providedMods += json.provides
+						}
+						if (json.id != normalModid) {
+							providedMods += json.id
+						}
+						if (!providedMods.empty) {
+							provides = providedMods
+						}
+					}
+				])
+
+				put 'dependencies', buildMap {
+					propertyMissing("$normalModid", ([
+						buildMap {
+							modId = "forge"
+							mandatory = true
+							// 1.18.2 note: was hardcoded '[47.1.3,)' (1.20.1-era forge); use the
+							// dev forge version passed into the task so the generated mods.toml
+							// matches this port.
+							versionRange = "[${forgeVersionString.get()},)" as String
+							ordering = "NONE"
+							side = "BOTH"
+						},
+						buildMap {
+							modId = "minecraft"
+							mandatory = true
+							versionRange = "[${minecraftVersionString.get()},1.$nextMajor)" as String
+							ordering = "NONE"
+							side = "BOTH"
+						}
+					] + modDependencies))
+				}
+			}
+
+			def modsToml = output.resolve("META-INF/mods.toml")
+			Files.deleteIfExists(modsToml)
+			Files.createDirectories(modsToml.parent)
+			final tomlWriter = new TomlWriter.Builder()
+				.indentValuesBy(2)
+				.indentTablesBy(4)
+				.build()
+			modsToml.withWriter { tomlWriter.write(tomlMap, it) }
+
+			if (addMixinConfigs.get() && json.mixins) {
+				def configs = json.mixins.collect {
+					if (it instanceof Map) {
+						return it.config
+					} else if (it instanceof String) {
+						return it
+					} else {
+						throw new RuntimeException("Unknown mixin config type ${it.getClass()}")
+					}
+				}.join(',')
+				def manifest = output.resolve("META-INF/MANIFEST.MF")
+				Files.createDirectories(manifest.parent)
+				manifest.withPrintWriter {
+					it.println("MixinConfigs: $configs")
+				}
+			}
+
+			def metadataJson = new JsonBuilder()
+			metadataJson {
+				pack {
+					description {
+						text "$normalModid resources"
+					}
+					pack_format packFormat.get()
+				}
+			}
+			def packMcMeta = output.resolve("pack.mcmeta")
+			packMcMeta.withWriter { metadataJson.writeTo(it) }
+			
+			if (accessWidener.isPresent()) {
+				def awPath = accessWidener.get().asFile.toPath()
+				def atPath = output.resolve("META-INF/accesstransformer_dev.cfg")
+				
+				AccessTransformSet at = AccessTransformSet.create()
+				try (BufferedReader reader = Files.newBufferedReader(awPath, StandardCharsets.UTF_8)) {
+					at.merge(Aw2At.toAccessTransformSet(reader));
+				}
+
+				MappingsService service = UnsafeWorkQueueHelper.get(mappingServiceUuid, MappingsService.class);
+
+				try (TinyMappingsReader reader = new TinyMappingsReader(service.getMemoryMappingTree(), service.getFromNamespace(), service.getToNamespace())) {
+					MappingSet mappingSet = reader.read();
+					at = at.remap(mappingSet);
+				}
+
+				try (Writer writer = new LfWriter(Files.newBufferedWriter(atPath))) {
+					AccessTransformFormats.FML.write(writer, at);
+				}
+			}
+		}
+	}
+}

@@ -1,0 +1,11 @@
+archivesBaseName = "fabric-resource-conditions-api-v1"
+version = getSubprojectVersion(project)
+
+//
+
+testDependencies(project, [
+])
+
+dependencies {
+	compileOnly "net.fabricmc:fabric-loader:${rootProject.loader_version}"
+}

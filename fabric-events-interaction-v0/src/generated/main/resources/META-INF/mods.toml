@@ -1,0 +1,33 @@
+modLoader = "javafml"
+loaderVersion = "[40,)"
+license = "Apache-2.0"
+
+[[mods]]
+  modId = "fabric_events_interaction_v0"
+  version = "${file.jarVersion}"
+  displayName = "Fabric Events Interaction (v0)"
+  logoFile = "assets/fabric-events-interaction-v0/icon.png"
+  authors = "FabricMC"
+  description = "Events for player interaction with blocks and entities."
+provides = ["fabric-events-interaction-v0"]
+
+    [[dependencies.fabric_events_interaction_v0]]
+      modId = "forge"
+      mandatory = true
+      versionRange = "[40.3.12,)"
+      ordering = "NONE"
+      side = "BOTH"
+
+    [[dependencies.fabric_events_interaction_v0]]
+      modId = "minecraft"
+      mandatory = true
+      versionRange = "[1.18.2,1.19)"
+      ordering = "NONE"
+      side = "BOTH"
+
+    [[dependencies.fabric_events_interaction_v0]]
+      modId = "fabric_api_base"
+      mandatory = true
+      versionRange = "[0, )"
+      ordering = "NONE"
+      side = "BOTH"

@@ -1,0 +1,10 @@
+archivesBaseName = "fabric-block-view-api-v2"
+version = getSubprojectVersion(project)
+
+loom {
+	accessWidenerPath = file("src/main/resources/fabric-block-view-api-v2.accesswidener")
+}
+
+dependencies {
+	compileOnly "net.fabricmc:fabric-loader:${rootProject.loader_version}"
+}

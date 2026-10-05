@@ -1,0 +1,30 @@
+modLoader = "javafml"
+loaderVersion = "[40,)"
+license = "Apache-2.0"
+
+[[mods]]
+  modId = "fabric_resource_loader_v0_testmod"
+  version = "${file.jarVersion}"
+  displayName = "Fabric Resource Loader (v0) Test Mod"
+provides = ["fabric-resource-loader-v0-testmod"]
+
+    [[dependencies.fabric_resource_loader_v0_testmod]]
+      modId = "forge"
+      mandatory = true
+      versionRange = "[40.3.12,)"
+      ordering = "NONE"
+      side = "BOTH"
+
+    [[dependencies.fabric_resource_loader_v0_testmod]]
+      modId = "minecraft"
+      mandatory = true
+      versionRange = "[1.18.2,1.19)"
+      ordering = "NONE"
+      side = "BOTH"
+
+    [[dependencies.fabric_resource_loader_v0_testmod]]
+      modId = "fabric_resource_loader_v0"
+      mandatory = true
+      versionRange = "[0, )"
+      ordering = "NONE"
+      side = "BOTH"

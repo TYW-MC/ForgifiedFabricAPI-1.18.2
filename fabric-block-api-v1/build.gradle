@@ -1,0 +1,6 @@
+archivesBaseName = "fabric-block-api-v1"
+version = getSubprojectVersion(project)
+
+dependencies {
+	compileOnly "net.fabricmc:fabric-loader:${rootProject.loader_version}"
+}

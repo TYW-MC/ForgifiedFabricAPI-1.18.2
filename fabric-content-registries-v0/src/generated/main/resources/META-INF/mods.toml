@@ -1,0 +1,47 @@
+modLoader = "javafml"
+loaderVersion = "[40,)"
+license = "Apache-2.0"
+
+[[mods]]
+  modId = "fabric_content_registries_v0"
+  version = "${file.jarVersion}"
+  displayName = "Fabric Content Registries (v0)"
+  logoFile = "assets/fabric-content-registries-v0/icon.png"
+  authors = "FabricMC"
+  description = "Adds registries for vanilla mechanics that are missing them."
+provides = ["fabric-content-registries-v0"]
+
+    [[dependencies.fabric_content_registries_v0]]
+      modId = "forge"
+      mandatory = true
+      versionRange = "[40.3.12,)"
+      ordering = "NONE"
+      side = "BOTH"
+
+    [[dependencies.fabric_content_registries_v0]]
+      modId = "minecraft"
+      mandatory = true
+      versionRange = "[1.18.2,1.19)"
+      ordering = "NONE"
+      side = "BOTH"
+
+    [[dependencies.fabric_content_registries_v0]]
+      modId = "fabric_api_base"
+      mandatory = true
+      versionRange = "[0, )"
+      ordering = "NONE"
+      side = "BOTH"
+
+    [[dependencies.fabric_content_registries_v0]]
+      modId = "fabric_lifecycle_events_v1"
+      mandatory = true
+      versionRange = "[0, )"
+      ordering = "NONE"
+      side = "BOTH"
+
+    [[dependencies.fabric_content_registries_v0]]
+      modId = "fabric_resource_loader_v0"
+      mandatory = true
+      versionRange = "[0, )"
+      ordering = "NONE"
+      side = "BOTH"

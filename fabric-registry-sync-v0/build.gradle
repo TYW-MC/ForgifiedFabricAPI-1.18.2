@@ -1,0 +1,20 @@
+archivesBaseName = "fabric-registry-sync-v0"
+version = getSubprojectVersion(project)
+
+loom {
+	// access widener removed: not present in Fabric API 0.77.0+1.18.2 (src/main/resources/fabric-registry-sync-v0.accesswidener)
+}
+
+moduleDependencies(project, [
+	'fabric-api-base',
+	'fabric-networking-api-v1',
+])
+
+testDependencies(project, [
+	':fabric-lifecycle-events-v1',
+	'deprecated/fabric-command-api-v1',
+])
+
+dependencies {
+	compileOnly "net.fabricmc:fabric-loader:${rootProject.loader_version}"
+}

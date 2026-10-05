@@ -1,0 +1,25 @@
+archivesBaseName = "fabric-particles-v1"
+version = getSubprojectVersion(project)
+
+loom {
+	accessWidenerPath = file("src/main/resources/fabric-particles-v1.accesswidener")
+}
+
+moduleDependencies(project, [
+	'fabric-api-base',
+])
+
+validateMixinNames {
+	// Loom needs to handle inner mixins better
+	exclude "**/ParticleManagerAccessor\$SimpleSpriteProviderAccessor.class"
+}
+
+testDependencies(project, [
+	'deprecated/fabric-command-api-v1',
+	':fabric-rendering-v1',
+	':fabric-resource-loader-v0',
+])
+
+dependencies {
+	compileOnly "net.fabricmc:fabric-loader:${rootProject.loader_version}"
+}

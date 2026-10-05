@@ -1,0 +1,23 @@
+modLoader = "javafml"
+loaderVersion = "[40,)"
+license = "Apache-2.0"
+
+[[mods]]
+  modId = "fabric_api_base_testmod"
+  version = "${file.jarVersion}"
+  displayName = "Fabric API Base Test Mod"
+provides = ["fabric-api-base-testmod"]
+
+    [[dependencies.fabric_api_base_testmod]]
+      modId = "forge"
+      mandatory = true
+      versionRange = "[40.3.12,)"
+      ordering = "NONE"
+      side = "BOTH"
+
+    [[dependencies.fabric_api_base_testmod]]
+      modId = "minecraft"
+      mandatory = true
+      versionRange = "[1.18.2,1.19)"
+      ordering = "NONE"
+      side = "BOTH"
