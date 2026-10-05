@@ -1,0 +1,47 @@
+name: Build
+
+on:
+  push:
+    branches: [ "**" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Gradle cache
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Build
+        run: >
+          ./gradlew build --no-daemon --stacktrace
+          -x test
+          -x compileTestmodJava
+          -x javadoc
+          -x remapSourcesJar
+          -x sourcesJar
+          -x validateAnnotations
+          -x runDatagen
+          -x checkReferenceCompatibility
+          -x validateMixinNames
+          -x validateAccessWidener
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ForgifiedFabricAPI-1.18.2-${{ github.sha }}
+          path: |
+            build/libs/*.jar
+            !build/libs/*-sources.jar
+            !build/libs/*-testmod.jar
+            !build/libs/*fatjavadoc.jar
+          if-no-files-found: error
