@@ -1,11 +1,7 @@
-# Forgified Fabric API
+# Forgified Fabric API -1.18.2
 
-[![Build](https://github.com/Sinytra/ForgifiedFabricAPI/actions/workflows/build.yml/badge.svg)](https://github.com/Sinytra/ForgifiedFabricAPI/actions/workflows/build.yml)
-[![Latest Release](https://img.shields.io/github/v/release/Sinytra/ForgifiedFabricAPI?style=flat&label=Release)](https://github.com/Sinytra/ForgifiedFabricAPI/releases/latest)
-[![CurseForge](https://cf.way2muchnoise.eu/forgified-fabric-api.svg)](https://www.curseforge.com/minecraft/mc-mods/forgified-fabric-api)
-[![Modrinth](https://img.shields.io/modrinth/dt/Aqlf1Shp?logo=modrinth&label=Modrinth&color=00AF5C)](https://modrinth.com/mod/forgified-fabric-api)
-[![Discord](https://discordapp.com/api/guilds/1141048834177388746/widget.png?style=shield)](https://discord.gg/mamk7z3TKZ)
 
+[![Latest Release](https://img.shields.io/github/v/release/TYW-MC/ForgifiedFabricAPI-1.18.2?style=flat&label=Release)](https://github.com/TYW-MC/ForgifiedFabricAPI-1.18.2/releases/latest)
 Essential hooks for modding with Fabric ported to MinecraftForge.
 
 Fabric API is the library for essential hooks and interoperability mechanisms for mods. Examples include:
