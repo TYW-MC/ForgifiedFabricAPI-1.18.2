@@ -87,7 +87,19 @@ jobs:
 
             ## Changes in this build
 
-            - **Every mixin configuration now declares `minVersion: 0.8`.** The mixin configs
+            - **Creative inventory tabs no longer overlap.** The ported `item-groups-v0` module
+              still carried Fabric's own tab-layout mixin, which rewrote `isTopRow()` and
+              `getColumn()` with the `(index - 12) % 9` formula Fabric uses on top of *its*
+              creative screen. Forge 1.18.2 already paginates the creative tabs natively
+              (`((index - 12) % 10) % 5`, ten mod tabs per page), so the two formulas fought
+              each other: from the eleventh mod tab onwards, tabs wrapped back into a slot an
+              earlier mod had already claimed and were drawn on top of one another. A mod's
+              tab could end up sitting under a completely unrelated mod's tab. The mixin no
+              longer injects anything and tab placement is left entirely to Forge.
+
+            ## Also in this line
+
+            - **Every mixin configuration declares `minVersion: 0.8`.** The mixin configs
               shipped by the port were missing the field, which Mixin reports as an error for
               each config it loads, so a normal startup log was full of noise. All of them are
               annotated now and the corresponding errors are gone.
@@ -95,8 +107,6 @@ jobs:
             - **Two mixin configs carried a trailing comma** left over from the porting pass,
               which made them invalid JSON and could stop the affected modules from applying.
               Both have been fixed.
-
-            ## Also in this line
 
             - **The main menu panorama and sounds no longer disappear.** Sinytra Connector
               exposes the vanilla game and Forge as ordinary Fabric mods, and their game jars

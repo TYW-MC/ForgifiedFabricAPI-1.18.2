@@ -18,14 +18,18 @@ package net.fabricmc.fabric.mixin.item.group.client;
 
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import net.minecraft.item.ItemGroup;
 
-import net.fabricmc.fabric.impl.item.group.FabricCreativeGuiComponents;
-
+/**
+ * [Forge port] 原版 1.18.2 Fabric 的此 mixin 会用 {@code (index-12)%9} 的公式
+ * 重写 {@code isTopRow}/{@code getColumn}，但 Forge 1.18.2 原生已为创造栏标签
+ * 提供分页（每页 10 个，{@code ((index-12)%10)%5}）。若再用旧公式覆盖会导致第
+ * 11 个及之后的模组标签回卷到第一页首位、与其他模组标签重叠。
+ *
+ * <p>因此这里不再注入任何逻辑，标签定位完全交给 Forge 原生实现。
+ * 详见 2026-10-06 ocelotsignmod 与 mishanguc 标签重叠的排查。</p>
+ */
 @Mixin(ItemGroup.class)
 public abstract class MixinItemGroup {
 	@Shadow
@@ -33,22 +37,4 @@ public abstract class MixinItemGroup {
 
 	@Shadow
 	public abstract boolean isTopRow();
-
-	@Inject(method = "isTopRow", cancellable = true, at = @At("HEAD"))
-	private void isTopRow(CallbackInfoReturnable<Boolean> info) {
-		if (getIndex() > 11) {
-			info.setReturnValue((getIndex() - 12) % (12 - FabricCreativeGuiComponents.COMMON_GROUPS.size()) < 4);
-		}
-	}
-
-	@Inject(method = "getColumn", cancellable = true, at = @At("HEAD"))
-	private void getColumn(CallbackInfoReturnable<Integer> info) {
-		if (getIndex() > 11) {
-			if (isTopRow()) {
-				info.setReturnValue((getIndex() - 12) % (12 - FabricCreativeGuiComponents.COMMON_GROUPS.size()));
-			} else {
-				info.setReturnValue((getIndex() - 12) % (12 - FabricCreativeGuiComponents.COMMON_GROUPS.size()) - 4);
-			}
-		}
-	}
 }
