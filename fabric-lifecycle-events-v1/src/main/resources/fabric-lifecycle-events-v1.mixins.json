@@ -25,5 +25,6 @@
   "injectors": {
     "defaultRequire": 1,
     "maxShiftBy": 3
-  }
+  },
+  "minVersion": "0.8"
 }

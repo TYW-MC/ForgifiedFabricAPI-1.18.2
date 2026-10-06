@@ -8,5 +8,6 @@
   "injectors": {
     "defaultRequire": 1,
     "maxShiftBy": 5
-  }
+  },
+  "minVersion": "0.8"
 }

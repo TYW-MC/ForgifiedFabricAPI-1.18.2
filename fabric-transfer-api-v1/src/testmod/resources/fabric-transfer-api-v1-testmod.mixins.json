@@ -4,5 +4,6 @@
   "compatibilityLevel": "JAVA_8",
   "mixins": [
     "AbstractFurnaceBlockEntityAccessor"
-  ]
+  ],
+  "minVersion": "0.8"
 }

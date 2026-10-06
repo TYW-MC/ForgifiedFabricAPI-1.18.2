@@ -9,5 +9,6 @@
   },
   "client": [
     "ClientPlayNetworkHandlerMixin"
-  ]
+  ],
+  "minVersion": "0.8"
 }

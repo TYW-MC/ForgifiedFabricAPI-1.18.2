@@ -4,7 +4,7 @@
   "compatibilityLevel": "JAVA_16",
   "mixins": [
     "MixinServerPlayerEntity",
-    "MixinServerPlayerInteractionManager",
+    "MixinServerPlayerInteractionManager"
   ],
   "client": [
     "MixinClientPlayerInteractionManager",
@@ -12,5 +12,6 @@
   ],
   "injectors": {
     "defaultRequire": 1
-  }
+  },
+  "minVersion": "0.8"
 }

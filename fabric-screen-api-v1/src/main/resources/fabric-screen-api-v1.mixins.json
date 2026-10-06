@@ -14,5 +14,6 @@
     "KeyboardMixin",
     "MouseMixin",
     "ScreenAccessor"
-  ]
+  ],
+  "minVersion": "0.8"
 }

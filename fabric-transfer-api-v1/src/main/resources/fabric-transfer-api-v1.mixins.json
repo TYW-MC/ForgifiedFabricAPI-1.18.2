@@ -14,5 +14,6 @@
     "LootableContainerBlockEntityMixin",
     "SimpleInventoryMixin",
     "HopperBlockEntityInvoker"
-  ]
+  ],
+  "minVersion": "0.8"
 }

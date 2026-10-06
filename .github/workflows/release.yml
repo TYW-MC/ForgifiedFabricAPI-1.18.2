@@ -85,17 +85,28 @@ jobs:
             networking, transfer API, item groups, loot API, mining level, content registries,
             and the supporting implementation modules.
 
-            ## Fixes in this build
+            ## Changes in this build
 
-            - **The main menu panorama and sounds no longer disappear.**
-              Sinytra Connector exposes the vanilla game and Forge as ordinary Fabric mods, and
-              their game jars only ship 1x1 stub copies of a handful of assets - among them the
-              title screen panoramas. Those stubs used to be bundled into the always-on-top
-              `Fabric Mods` pack, which shadowed the real assets served by the asset-index-backed
-              default pack. The result was a flat grey main menu background and no music.
-              Resource packs are now skipped for game/platform mods: either the `minecraft` mod id,
-              or any mod whose root paths contain the `assets/.mcassetsroot` (or
-              `data/.mcassetsroot`) marker.
+            - **Every mixin configuration now declares `minVersion: 0.8`.** The mixin configs
+              shipped by the port were missing the field, which Mixin reports as an error for
+              each config it loads, so a normal startup log was full of noise. All of them are
+              annotated now and the corresponding errors are gone.
+
+            - **Two mixin configs carried a trailing comma** left over from the porting pass,
+              which made them invalid JSON and could stop the affected modules from applying.
+              Both have been fixed.
+
+            ## Also in this line
+
+            - **The main menu panorama and sounds no longer disappear.** Sinytra Connector
+              exposes the vanilla game and Forge as ordinary Fabric mods, and their game jars
+              only ship 1x1 stub copies of a handful of assets - among them the title screen
+              panoramas. Those stubs used to be bundled into the always-on-top `Fabric Mods`
+              pack, which shadowed the real assets served by the asset-index-backed default
+              pack. The result was a flat grey main menu background and no music. Resource packs
+              are now skipped for game/platform mods: either the `minecraft` mod id, or any mod
+              whose root paths contain the `assets/.mcassetsroot` (or `data/.mcassetsroot`)
+              marker.
 
             ## Installation
 
