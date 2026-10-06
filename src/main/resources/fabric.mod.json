@@ -16,7 +16,8 @@
   },
   "authors": [
     "FabricMC",
-    "Sinytra"
+    "Sinytra",
+    "TYW"
   ],
   "depends": {
     "fabricloader": ">=0.16.10",
