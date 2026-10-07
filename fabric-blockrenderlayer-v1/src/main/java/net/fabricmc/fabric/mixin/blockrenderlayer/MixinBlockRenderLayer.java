@@ -39,5 +39,14 @@ public class MixinBlockRenderLayer {
 	@Inject(method = "<clinit>*", at = @At("RETURN"))
 	private static void onInitialize(CallbackInfo info) {
 		BlockRenderLayerMapImpl.initialize(BLOCKS::put, FLUIDS::put);
+
+		// Forge note: writing BLOCKS/FLUIDS alone is not enough on Forge. RenderLayers derives
+		// its predicate map (blockRenderChecks, read by canRenderInLayer) from BLOCKS during
+		// this very initialiser and never looks at BLOCKS again, so registrations that only
+		// reach BLOCKS are invisible to anything asking Forge - in practice the optimisation
+		// mods Embeddium/Rubidium, which rendered those blocks as solid (transparent texture
+		// pixels drawn opaque). registerForgeLayers forwards every layer to
+		// RenderLayers.setRenderLayer, the Forge API that maintains that second map.
+		BlockRenderLayerMapImpl.registerForgeLayers();
 	}
 }

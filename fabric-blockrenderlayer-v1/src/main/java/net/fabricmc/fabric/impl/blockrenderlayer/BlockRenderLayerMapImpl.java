@@ -22,6 +22,7 @@ import java.util.function.BiConsumer;
 
 import net.minecraft.block.Block;
 import net.minecraft.client.render.RenderLayer;
+import net.minecraft.client.render.RenderLayers;
 import net.minecraft.fluid.Fluid;
 import net.minecraft.item.Item;
 
@@ -97,5 +98,55 @@ public class BlockRenderLayerMapImpl implements BlockRenderLayerMap {
 		blockHandler = blockHandlerIn;
 		itemHandler = itemHandlerIn;
 		fluidHandler = fluidHandlerIn;
+	}
+
+	/**
+	 * Forge half of the registration, called by the {@code RenderLayers} mixin right after
+	 * {@link #initialize}.
+	 *
+	 * <p><b>Why this is needed (1.18.2 port).</b> On Forge, {@code RenderLayers} (vanilla
+	 * {@code ItemBlockRenderTypes}) does not answer render layer questions from
+	 * {@code BLOCKS}/{@code FLUIDS} alone. During its static initialiser it derives a second,
+	 * predicate-shaped map from {@code BLOCKS} ({@code blockRenderChecks}, exposed through
+	 * {@code getBlockLayerPredicatesView()} and consumed by {@code canRenderInLayer}). That
+	 * derivation happens exactly once, so anything written into {@code BLOCKS} afterwards is
+	 * invisible to it: the map keeps its default predicate, which only accepts the solid layer.
+	 *
+	 * <p>Vanilla's own chunk builder goes through {@code BLOCKS} and is therefore fine, but the
+	 * optimisation mods Embeddium/Rubidium ask Forge instead - {@code EmbeddiumRenderLayerCache}
+	 * builds a state's render type list out of {@code ItemBlockRenderTypes.canRenderInLayer} - so
+	 * a Fabric block registered as cutout/translucent through this API kept being rendered with
+	 * the solid layer there. The alpha channel of its texture was ignored and the transparent
+	 * pixels were drawn with their own colour, which is how road line and road sign textures
+	 * (transparent pixels are pure black for the yellow lines and near-white for the white ones)
+	 * ended up as solid black or white faces in game.
+	 *
+	 * <p>{@code RenderLayers.setRenderLayer} is Forge's public API for that second map and the
+	 * only thing that republishes its read-only view, so every layer is forwarded to it as well.
+	 * It is registered <em>in addition to</em> the vanilla maps, never instead of them.
+	 */
+	public static void registerForgeLayers() {
+		//Replay everything that was registered before this point.
+		blockRenderLayerMap.forEach((block, renderLayer) -> RenderLayers.setRenderLayer(block, renderLayer));
+		itemRenderLayerMap.forEach((item, renderLayer) -> RenderLayers.setRenderLayer(Block.getBlockFromItem(item), renderLayer));
+		fluidRenderLayerMap.forEach((fluid, renderLayer) -> RenderLayers.setRenderLayer(fluid, renderLayer));
+
+		//And keep forwarding later registrations, on top of the vanilla maps.
+		BiConsumer<Block, RenderLayer> vanillaBlockHandler = blockHandler;
+		BiConsumer<Item, RenderLayer> vanillaItemHandler = itemHandler;
+		BiConsumer<Fluid, RenderLayer> vanillaFluidHandler = fluidHandler;
+
+		blockHandler = (block, renderLayer) -> {
+			vanillaBlockHandler.accept(block, renderLayer);
+			RenderLayers.setRenderLayer(block, renderLayer);
+		};
+		itemHandler = (item, renderLayer) -> {
+			vanillaItemHandler.accept(item, renderLayer);
+			RenderLayers.setRenderLayer(Block.getBlockFromItem(item), renderLayer);
+		};
+		fluidHandler = (fluid, renderLayer) -> {
+			vanillaFluidHandler.accept(fluid, renderLayer);
+			RenderLayers.setRenderLayer(fluid, renderLayer);
+		};
 	}
 }

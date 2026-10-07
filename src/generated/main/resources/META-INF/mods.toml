@@ -7,7 +7,7 @@ license = "Apache-2.0"
   version = "${file.jarVersion}"
   displayName = "Forgified Fabric API"
   logoFile = "assets/fabric/icon.png"
-  authors = "FabricMC, Sinytra"
+  authors = "FabricMC, Sinytra, TYW"
   description = "Core API module providing key hooks and intercompatibility features."
 provides = ["fabric", "fabric-api"]
 

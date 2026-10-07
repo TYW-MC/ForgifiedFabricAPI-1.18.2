@@ -87,17 +87,35 @@ jobs:
 
             ## Changes in this build
 
+            - **Render layers registered by Fabric mods now reach the optimisation mods
+              (Embeddium/Rubidium).** Forge keeps block render layers in two places: the vanilla
+              `BLOCKS`/`FLUIDS` maps, and a second, predicate-shaped map (`blockRenderChecks`,
+              reachable through `ItemBlockRenderTypes.canRenderInLayer`) that Forge derives from
+              the vanilla maps *once*, inside its own static initialiser, and then never
+              regenerates. Fabric API's `BlockRenderLayerMap` only wrote the vanilla maps, so a
+              block registered as cutout or translucent was invisible to the predicate map and
+              got its default predicate instead, which accepts the solid layer only. Vanilla's
+              chunk builder reads the vanilla maps and so was unaffected, but Embeddium and
+              Rubidium ask Forge - `EmbeddiumRenderLayerCache` builds a state's render type list
+              out of `canRenderInLayer` - and therefore rendered those blocks as **solid**: the
+              alpha channel of their textures was ignored and the transparent pixels were drawn
+              in their own colour. For textures whose transparent pixels are pure black (yellow
+              road lines) or near-white (white road lines) that meant solid black or white faces
+              in the world, while the item icon in the inventory looked fine. `putBlock`,
+              `putFluid` and `putItem` now also forward every entry to
+              `RenderLayers.setRenderLayer`, the Forge API that maintains the predicate map and
+              republishes its read-only view, so both maps stay in sync.
+
+            ## Also in this line
+
             - **Creative inventory tabs no longer overlap.** The ported `item-groups-v0` module
               still carried Fabric's own tab-layout mixin, which rewrote `isTopRow()` and
               `getColumn()` with the `(index - 12) % 9` formula Fabric uses on top of *its*
               creative screen. Forge 1.18.2 already paginates the creative tabs natively
               (`((index - 12) % 10) % 5`, ten mod tabs per page), so the two formulas fought
               each other: from the eleventh mod tab onwards, tabs wrapped back into a slot an
-              earlier mod had already claimed and were drawn on top of one another. A mod's
-              tab could end up sitting under a completely unrelated mod's tab. The mixin no
+              earlier mod had already claimed and were drawn on top of one another. The mixin no
               longer injects anything and tab placement is left entirely to Forge.
-
-            ## Also in this line
 
             - **Every mixin configuration declares `minVersion: 0.8`.** The mixin configs
               shipped by the port were missing the field, which Mixin reports as an error for
