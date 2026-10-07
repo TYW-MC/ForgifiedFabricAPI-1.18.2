@@ -87,6 +87,20 @@ jobs:
 
             ## Changes in this build
 
+            - **Render layer registration no longer aborts startup on Embeddium/Rubidium
+              setups.** The previous build forwarded Fabric's registrations to Forge's
+              `RenderLayers.setRenderLayer` directly from `RenderLayers`' static initialiser.
+              Under Sinytra Connector a Fabric mod can reach that initialiser from its client
+              entrypoint, which runs from `Main#main` *before* the Minecraft client object
+              exists - and Embeddium mixes into `setRenderLayer` and its callback calls
+              `Minecraft.getInstance().execute(...)`, so the call threw a
+              `NullPointerException`. Thrown inside a class initialiser, that NPE turned into an
+              `ExceptionInInitializerError`, the connector reported `Could not execute entrypoint
+              stage 'client' ... provided by 'mishanguc'` and the game died while booting.
+              Registrations are now parked and applied from the client's first tick (a new
+              `MinecraftClient.tick` hook), which is after the client instance exists and long
+              before anything is rendered. Registrations made later still go straight through.
+
             - **Render layers registered by Fabric mods now reach the optimisation mods
               (Embeddium/Rubidium).** Forge keeps block render layers in two places: the vanilla
               `BLOCKS`/`FLUIDS` maps, and a second, predicate-shaped map (`blockRenderChecks`,

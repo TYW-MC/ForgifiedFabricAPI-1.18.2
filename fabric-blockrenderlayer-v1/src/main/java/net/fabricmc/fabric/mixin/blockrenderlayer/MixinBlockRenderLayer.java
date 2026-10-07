@@ -45,8 +45,11 @@ public class MixinBlockRenderLayer {
 		// this very initialiser and never looks at BLOCKS again, so registrations that only
 		// reach BLOCKS are invisible to anything asking Forge - in practice the optimisation
 		// mods Embeddium/Rubidium, which rendered those blocks as solid (transparent texture
-		// pixels drawn opaque). registerForgeLayers forwards every layer to
-		// RenderLayers.setRenderLayer, the Forge API that maintains that second map.
+		// pixels drawn opaque). registerForgeLayers hands every layer to Forge's
+		// RenderLayers.setRenderLayer, the API that maintains that second map, but parks it
+		// until the client instance exists: setRenderLayer is hooked by Embeddium, whose
+		// callback dereferences Minecraft.getInstance(), and this initialiser can run before
+		// the client exists.
 		BlockRenderLayerMapImpl.registerForgeLayers();
 	}
 }

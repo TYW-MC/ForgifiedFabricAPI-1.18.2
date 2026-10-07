@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 
 import net.minecraft.block.Block;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.RenderLayers;
 import net.minecraft.fluid.Fluid;
@@ -80,6 +81,11 @@ public class BlockRenderLayerMapImpl implements BlockRenderLayerMap {
 	private static Map<Item, RenderLayer> itemRenderLayerMap = new HashMap<>();
 	private static Map<Fluid, RenderLayer> fluidRenderLayerMap = new HashMap<>();
 
+	//Forge-side layers waiting for the client instance to exist. Guarded by pendingForgeBlockLayers.
+	private static final Map<Block, RenderLayer> pendingForgeBlockLayers = new HashMap<>();
+	private static final Map<Fluid, RenderLayer> pendingForgeFluidLayers = new HashMap<>();
+	private static boolean forgeLayersApplied = false;
+
 	//This consumers initially add to the maps above, and then are later set (when initialize is called) to insert straight into the target map.
 	private static BiConsumer<Block, RenderLayer> blockHandler = (b, l) -> blockRenderLayerMap.put(b, l);
 	private static BiConsumer<Item, RenderLayer> itemHandler = (i, l) -> itemRenderLayerMap.put(i, l);
@@ -124,29 +130,99 @@ public class BlockRenderLayerMapImpl implements BlockRenderLayerMap {
 	 * <p>{@code RenderLayers.setRenderLayer} is Forge's public API for that second map and the
 	 * only thing that republishes its read-only view, so every layer is forwarded to it as well.
 	 * It is registered <em>in addition to</em> the vanilla maps, never instead of them.
+	 *
+	 * <p><b>Why the forwarding is parked instead of done here (1.18.2 port).</b> This method runs
+	 * from {@code RenderLayers}' static initialiser, and under Sinytra Connector a Fabric mod can
+	 * trigger that initialiser from its client entrypoint, which {@code Main#main} invokes
+	 * <em>before</em> the Minecraft client object exists. Forge's own {@code setRenderLayer}
+	 * would not care, but Embeddium (and Rubidium) mix into it and its callback runs
+	 * {@code Minecraft.getInstance().execute(...)} - with a null instance that is a
+	 * {@link NullPointerException}. Because the call happens inside a class initialiser, the NPE
+	 * becomes an {@link ExceptionInInitializerError}, the connector reports
+	 * "Could not execute entrypoint stage 'client'" and the game dies while starting up. So every
+	 * entry is parked in {@link #pendingForgeBlockLayers}/{@link #pendingForgeFluidLayers} here
+	 * and applied by {@link #flushForgeLayers()} on the client's first tick, which is both after
+	 * the client instance exists and long before anything is rendered.
 	 */
 	public static void registerForgeLayers() {
 		//Replay everything that was registered before this point.
-		blockRenderLayerMap.forEach((block, renderLayer) -> RenderLayers.setRenderLayer(block, renderLayer));
-		itemRenderLayerMap.forEach((item, renderLayer) -> RenderLayers.setRenderLayer(Block.getBlockFromItem(item), renderLayer));
-		fluidRenderLayerMap.forEach((fluid, renderLayer) -> RenderLayers.setRenderLayer(fluid, renderLayer));
+		blockRenderLayerMap.forEach((block, renderLayer) -> queueForgeLayer(block, renderLayer));
+		itemRenderLayerMap.forEach((item, renderLayer) -> queueForgeLayer(Block.getBlockFromItem(item), renderLayer));
+		fluidRenderLayerMap.forEach((fluid, renderLayer) -> queueForgeLayer(fluid, renderLayer));
 
-		//And keep forwarding later registrations, on top of the vanilla maps.
+		//And keep collecting later registrations, on top of the vanilla maps.
 		BiConsumer<Block, RenderLayer> vanillaBlockHandler = blockHandler;
 		BiConsumer<Item, RenderLayer> vanillaItemHandler = itemHandler;
 		BiConsumer<Fluid, RenderLayer> vanillaFluidHandler = fluidHandler;
 
 		blockHandler = (block, renderLayer) -> {
 			vanillaBlockHandler.accept(block, renderLayer);
-			RenderLayers.setRenderLayer(block, renderLayer);
+			queueForgeLayer(block, renderLayer);
 		};
 		itemHandler = (item, renderLayer) -> {
 			vanillaItemHandler.accept(item, renderLayer);
-			RenderLayers.setRenderLayer(Block.getBlockFromItem(item), renderLayer);
+			queueForgeLayer(Block.getBlockFromItem(item), renderLayer);
 		};
 		fluidHandler = (fluid, renderLayer) -> {
 			vanillaFluidHandler.accept(fluid, renderLayer);
-			RenderLayers.setRenderLayer(fluid, renderLayer);
+			queueForgeLayer(fluid, renderLayer);
 		};
+	}
+
+	private static void queueForgeLayer(Block block, RenderLayer renderLayer) {
+		if (forgeLayersApplied) {
+			RenderLayers.setRenderLayer(block, renderLayer);
+			return;
+		}
+
+		synchronized (pendingForgeBlockLayers) {
+			pendingForgeBlockLayers.put(block, renderLayer);
+		}
+	}
+
+	private static void queueForgeLayer(Fluid fluid, RenderLayer renderLayer) {
+		if (forgeLayersApplied) {
+			RenderLayers.setRenderLayer(fluid, renderLayer);
+			return;
+		}
+
+		synchronized (pendingForgeBlockLayers) {
+			pendingForgeFluidLayers.put(fluid, renderLayer);
+		}
+	}
+
+	/**
+	 * Applies the Forge-side layers parked by {@link #registerForgeLayers()} and turns the
+	 * handlers into pass-through writers. Called from the client's first tick
+	 * ({@code MixinMinecraftClientForgeLayers}), which is the earliest point where Forge's
+	 * {@code setRenderLayer} can safely be called on a setup with Embeddium/Rubidium installed:
+	 * its mixin needs {@code Minecraft.getInstance()} to be non-null.
+	 *
+	 * <p>Does nothing while the client instance is still missing, so the tick hook may simply call
+	 * this again on the next tick.
+	 */
+	public static void flushForgeLayers() {
+		if (forgeLayersApplied || MinecraftClient.getInstance() == null) {
+			return;
+		}
+
+		Map<Block, RenderLayer> blocks;
+		Map<Fluid, RenderLayer> fluids;
+
+		synchronized (pendingForgeBlockLayers) {
+			if (forgeLayersApplied) {
+				return;
+			}
+
+			//Registrations that arrive from here on are written straight through.
+			forgeLayersApplied = true;
+			blocks = new HashMap<>(pendingForgeBlockLayers);
+			fluids = new HashMap<>(pendingForgeFluidLayers);
+			pendingForgeBlockLayers.clear();
+			pendingForgeFluidLayers.clear();
+		}
+
+		blocks.forEach((block, renderLayer) -> RenderLayers.setRenderLayer(block, renderLayer));
+		fluids.forEach((fluid, renderLayer) -> RenderLayers.setRenderLayer(fluid, renderLayer));
 	}
 }
